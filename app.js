@@ -32,14 +32,14 @@ import {
 // ==========================================================================
 // This configuration links our application code to the Taskly Firebase project.
 const firebaseConfig = {
-  projectId: "taskly-79ef3",
+  projectId: "taskly-todo-47295",
   appId: "1:673275166379:web:c437182c5ca65bfe4e01ee",
-  storageBucket: "taskly-79ef3.firebasestorage.app",
+  storageBucket: "taskly-todo-47295.firebasestorage.app",
   apiKey: "AIzaSyAuev7wMFDXOxq5UIEtGPud0_NPjnUqYBE",
-  authDomain: "taskly-79ef3.firebaseapp.com",
+  authDomain: "taskly-todo-47295.firebaseapp.com",
   messagingSenderId: "673275166379",
   measurementId: "G-XMHZC8G4X3",
-  databaseURL: "https://taskly-79ef3-default-rtdb.firebaseio.com" // Realtime Database URL
+  databaseURL: "https://taskly-todo-47295-default-rtdb.firebaseio.com"
 };
 
 // Initialize Firebase Core, Auth services, and the Realtime Database instance
