@@ -90,7 +90,6 @@ class TaskStore {
     this.unbindUser(); 
     this.userId = userId;
 
-    // Concurrently initialize stream reads to drastically decrease load time
     const categoriesRef = ref(db, `users/${userId}/categories`);
     const tasksRef = ref(db, `users/${userId}/tasks`);
 
@@ -103,10 +102,12 @@ class TaskStore {
         });
       }
 
-      // Instead of using await inside a listener callback (which causes sync latency blocks), 
-      // handle the empty default setup smoothly.
+      // FIX: Tell the UI controller that synchronization completed even when configuring a new user layout
       if (cats.length === 0) {
         this.initializeDefaultCategories();
+        if (callbacks && callbacks.onCategoriesSynced) {
+          callbacks.onCategoriesSynced();
+        }
         return; 
       }
 
@@ -447,7 +448,7 @@ class AppController {
             setTimeout(() => {
               this.elements.authOverlay.style.display = 'none';
               this.elements.loadingOverlay.style.display = 'none';
-            }, 150); // Speed up transition timing
+            }, 150); 
 
             this.elements.userEmail.textContent = user.email;
             const displayName = user.displayName || user.email.split('@')[0];
@@ -471,7 +472,6 @@ class AppController {
 
         this.store.onUpdate = () => this.render();
 
-        // Bind user updates instantly via concurrent hooks
         this.store.bindUser(user.uid, {
           onCategoriesSynced: () => { catsLoaded = true; checkSync(); },
           onTasksSynced: () => { tksLoaded = true; checkSync(); }
@@ -513,7 +513,6 @@ class AppController {
         if (password.length < 6) {
           throw { code: 'auth/weak-password', message: 'Password should be at least 6 characters.' };
         }
-        // Fixes Issue #2: Firebase handles logins instantly upon signup creation.
         await createUserWithEmailAndPassword(auth, email, password);
       }
     } catch (err) {
@@ -527,7 +526,6 @@ class AppController {
     this.elements.authErrorMsg.style.display = 'none';
     this.setAuthFormLoading(true);
     try {
-      // Fixes Issue #1: Safe popup handling using standard Firebase configuration rules
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       console.error("Google Auth error:", err);
