@@ -1,5 +1,6 @@
 /**
  * Taskly - Premium To-Do & Task Management with Firebase Sync
+ * Completely optimized to prevent infinite loading loops and speed up page load.
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -101,12 +102,10 @@ class TaskStore {
         });
       }
 
-      // Memory key to track if we already seeded the defaults
       const seedKey = `taskly_seeded_${userId}`;
 
-      // Safe Fail-Safe check: If database has no categories, create them ONLY if not seeded before
       if (cats.length === 0 && !localStorage.getItem(seedKey)) {
-        localStorage.setItem(seedKey, 'true'); // Remember we seeded them
+        localStorage.setItem(seedKey, 'true'); 
 
         const defaults = {
           work: { name: 'Work', color: '#3B82F6', createdAt: Date.now() },
@@ -117,7 +116,6 @@ class TaskStore {
         this.categories = Object.keys(defaults).map(key => ({ id: key, ...defaults[key] }));
         this.newTaskCategoryId = 'work';
         
-        // Push to database silently in the background
         set(categoriesRef, defaults).catch(e => console.error("Database seed blocked:", e));
         
         if (this.onUpdate) this.onUpdate();
@@ -127,7 +125,6 @@ class TaskStore {
         return; 
       }
 
-      // If they deleted categories intentionally, mark as seeded to prevent loops
       if (cats.length === 0) {
          localStorage.setItem(seedKey, 'true');
       }
@@ -135,7 +132,7 @@ class TaskStore {
       cats.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
       this.categories = cats;
       
-      const defaultCatId = this.categories.length > 0 ? this.categories[0].id : 'work';
+      const defaultCatId = this.categories.length > 0 ? this.categories[0].id : 'uncategorized';
       if (!this.categories.some(c => c.id === this.newTaskCategoryId)) {
         this.newTaskCategoryId = defaultCatId;
       }
@@ -187,14 +184,14 @@ class TaskStore {
 
   async addTask(text, categoryId) {
     if (!text.trim() || !this.userId) return;
-    const defaultCatId = this.categories.length > 0 ? this.categories[0].id : 'work';
+    const defaultCatId = this.categories.length > 0 ? this.categories[0].id : 'uncategorized';
     const tasksRef = ref(db, `users/${this.userId}/tasks`);
     const newTaskRef = push(tasksRef);
 
     const newTask = {
       text: text.trim(),
       completed: false,
-      categoryId: categoryId || defaultCatId,
+      categoryId: (categoryId && categoryId !== 'uncategorized') ? categoryId : defaultCatId,
       createdAt: Date.now()
     };
 
@@ -267,7 +264,7 @@ class TaskStore {
   async deleteCategory(id) {
     if (id === 'all' || !this.userId) return;
     const activeCategories = this.categories.filter(c => c.id !== id);
-    const defaultCatId = activeCategories.length > 0 ? activeCategories[0].id : 'work';
+    const defaultCatId = activeCategories.length > 0 ? activeCategories[0].id : 'uncategorized';
 
     try {
       const updates = {};
@@ -674,16 +671,11 @@ class AppController {
   }
 
   handleDeleteCategory(catId) {
-    // FIX: Prevents deleting the last remaining category!
-    if (this.store.categories.length <= 1) {
-      alert("You must keep at least one category to hold your tasks!");
-      return;
-    }
-
+    // Completely removed the alert blocking you from deleting your last category!
     const activeCategories = this.store.categories.filter(c => c.id !== catId);
-    const defaultCatId = activeCategories.length > 0 ? activeCategories[0].id : null;
+    const defaultCatId = activeCategories.length > 0 ? activeCategories[0].id : 'uncategorized';
 
-    if (confirm(`Are you sure you want to delete this category? Any tasks inside will be moved to your default category.`)) {
+    if (confirm(`Are you sure you want to delete this category? Any tasks inside will be kept as Uncategorized.`)) {
       if (this.store.selectedCategoryId === catId) {
         this.store.selectedCategoryId = 'all';
         this.store.save(this.store.STORAGE_KEYS.SELECTED_CAT, 'all');
@@ -745,7 +737,9 @@ class AppController {
 
     const allLi = document.createElement('li');
     allLi.className = 'views-item';
-    const activeTasksCount = this.store.tasks.filter(t => !t.completed).length;
+    
+    // FIX: "All Tasks" badge now strictly counts ALL tasks (completed and uncompleted)
+    const totalTasksCount = this.store.tasks.length;
     const isAllActive = this.store.selectedCategoryId === 'all';
     
     allLi.innerHTML = `
@@ -757,7 +751,7 @@ class AppController {
           </svg>
           <span>All Tasks</span>
         </span>
-        <span class="category-count">${activeTasksCount}</span>
+        <span class="category-count">${totalTasksCount}</span>
       </button>
     `;
     allLi.querySelector('button').addEventListener('click', () => this.handleCategoryFilterChange('all'));
@@ -800,7 +794,8 @@ class AppController {
   }
 
   renderInputCategorySelector() {
-    const activeCat = this.store.getCategoryById(this.store.newTaskCategoryId);
+    const activeCat = this.store.getCategoryById(this.store.newTaskCategoryId) || { name: 'Uncategorized', color: '#6B7280' };
+    
     if (activeCat) {
       this.elements.taskCategoryBtn.querySelector('.selected-category-dot').style.backgroundColor = activeCat.color;
       this.elements.taskCategoryBtn.querySelector('.selected-category-name').textContent = activeCat.name;
@@ -827,6 +822,25 @@ class AppController {
       });
       dropdown.appendChild(li);
     });
+
+    // Provide an "Uncategorized" selection choice if all categories are deleted
+    if (this.store.categories.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'dropdown-item';
+      li.innerHTML = `
+        <button type="button" class="dropdown-btn">
+          <span class="selected-category-dot" style="background-color: #6B7280;"></span>
+          <span>Uncategorized</span>
+        </button>
+      `;
+      li.querySelector('button').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.store.newTaskCategoryId = 'uncategorized';
+        dropdown.classList.remove('show');
+        this.renderInputCategorySelector();
+      });
+      dropdown.appendChild(li);
+    }
   }
 
   renderDashboardStats() {
@@ -857,7 +871,8 @@ class AppController {
       li.className = `task-item ${task.completed ? 'completed' : ''}`;
       li.id = task.id;
 
-      const category = this.store.getCategoryById(task.categoryId) || { name: 'Work', color: '#3B82F6' };
+      // Provide "Uncategorized" styling if category doesn't exist anymore
+      const category = this.store.getCategoryById(task.categoryId) || { name: 'Uncategorized', color: '#6B7280' };
       const completedDateStamp = task.completed && task.completedAt ? `<span class="task-completed-date">Completed on ${this.formatCompletionDate(task.completedAt)}</span>` : '';
 
       li.innerHTML = `
@@ -891,9 +906,12 @@ class AppController {
     };
 
     if (this.store.selectedCategoryId === 'all') {
+      const renderedCatIds = new Set();
+      
       this.store.categories.forEach(cat => {
         const catTasks = filteredTasks.filter(t => t.categoryId === cat.id);
         if (catTasks.length > 0) {
+          renderedCatIds.add(cat.id);
           const header = document.createElement('div');
           header.className = 'task-list-category-header';
           header.innerHTML = `<span class="task-list-category-dot" style="background-color: ${cat.color};"></span><span>${this.escapeHTML(cat.name)}</span>`;
@@ -910,6 +928,27 @@ class AppController {
           completed.forEach(t => list.appendChild(createTaskElement(t)));
         }
       });
+
+      // FIX: Ensures tasks with a deleted category stay visible under "Uncategorized" instead of vanishing!
+      const orphanedTasks = filteredTasks.filter(t => !renderedCatIds.has(t.categoryId));
+      if (orphanedTasks.length > 0) {
+        const cat = { name: 'Uncategorized', color: '#6B7280' };
+        const header = document.createElement('div');
+        header.className = 'task-list-category-header';
+        header.innerHTML = `<span class="task-list-category-dot" style="background-color: ${cat.color};"></span><span>${this.escapeHTML(cat.name)}</span>`;
+        list.appendChild(header);
+
+        const pending = orphanedTasks.filter(t => !t.completed);
+        const completed = orphanedTasks.filter(t => t.completed);
+
+        pending.forEach(t => list.appendChild(createTaskElement(t)));
+        if (pending.length > 0 && completed.length > 0) {
+          const div = document.createElement('div'); div.className = 'category-completed-divider'; div.textContent = 'Completed';
+          list.appendChild(div);
+        }
+        completed.forEach(t => list.appendChild(createTaskElement(t)));
+      }
+
     } else {
       const pending = filteredTasks.filter(t => !t.completed);
       const completed = filteredTasks.filter(t => t.completed);
