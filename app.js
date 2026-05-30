@@ -102,10 +102,10 @@ class TaskStore {
         });
       }
 
-      // Safe Check: If database has no categories, initialize them cleanly first
+      // Safe Check: Wait for default initialization to finish, then let the listener instantly refire
       if (cats.length === 0) {
         await this.initializeDefaultCategories();
-        return; // Exits, letting the database write settle. The listener will instantly refire.
+        return; 
       }
 
       cats.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -838,9 +838,7 @@ class AppController {
       li.id = task.id;
 
       const category = this.store.getCategoryById(task.categoryId) || { name: 'Work', color: '#3B82F6' };
-      const completedDateStamp = task.completed && task.completedAt 
-        ? `<span class="task-completed-date">Completed on ${this.formatCompletionDate(task.completedAt)}</span>`
-        : '';
+      const completedDateStamp = task.completed && task.completedAt ? `<span class="task-completed-date">Completed on ${this.formatCompletionDate(task.completedAt)}</span>` : '';
 
       li.innerHTML = `
         <div class="task-left">
