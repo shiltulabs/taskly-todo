@@ -93,7 +93,7 @@ class TaskStore {
     const tasksRef = ref(db, `users/${userId}/tasks`);
 
     // Listen to Categories
-    this.unsubscribeCategories = onValue(categoriesRef, async (snapshot) => {
+    this.unsubscribeCategories = onValue(categoriesRef, (snapshot) => {
       const data = snapshot.val();
       let cats = [];
       if (data) {
@@ -102,9 +102,24 @@ class TaskStore {
         });
       }
 
-      // Safe Check: Wait for default initialization to finish, then let the listener instantly refire
+      // Safe Fail-Safe check: If database has no categories or blocks read/write, load locally instantly
       if (cats.length === 0) {
-        await this.initializeDefaultCategories();
+        const defaults = {
+          work: { name: 'Work', color: '#3B82F6', createdAt: Date.now() },
+          personal: { name: 'Personal', color: '#8B5CF6', createdAt: Date.now() + 1 },
+          shopping: { name: 'Shopping', color: '#EC4899', createdAt: Date.now() + 2 }
+        };
+        
+        this.categories = Object.keys(defaults).map(key => ({ id: key, ...defaults[key] }));
+        this.newTaskCategoryId = 'work';
+        
+        // Push to database silently in the background
+        set(categoriesRef, defaults).catch(e => console.error("Database seed blocked:", e));
+        
+        if (this.onUpdate) this.onUpdate();
+        if (callbacks && callbacks.onCategoriesSynced) {
+          callbacks.onCategoriesSynced();
+        }
         return; 
       }
 
@@ -125,6 +140,8 @@ class TaskStore {
       }
     }, (error) => {
       console.error("Database categories sync error:", error);
+      // Force loading window completion even if permission rules break
+      if (callbacks && callbacks.onCategoriesSynced) callbacks.onCategoriesSynced();
     });
 
     // Listen to Tasks
@@ -146,6 +163,7 @@ class TaskStore {
       }
     }, (error) => {
       console.error("Database tasks sync error:", error);
+      if (callbacks && callbacks.onTasksSynced) callbacks.onTasksSynced();
     });
   }
 
@@ -157,20 +175,6 @@ class TaskStore {
     this.userId = null;
     this.tasks = [];
     this.categories = [];
-  }
-
-  async initializeDefaultCategories() {
-    if (!this.userId) return;
-    const defaults = {
-      work: { name: 'Work', color: '#3B82F6', createdAt: Date.now() },
-      personal: { name: 'Personal', color: '#8B5CF6', createdAt: Date.now() + 1 },
-      shopping: { name: 'Shopping', color: '#EC4899', createdAt: Date.now() + 2 }
-    };
-    try {
-      await set(ref(db, `users/${this.userId}/categories`), defaults);
-    } catch (e) {
-      console.error("Error creating default categories:", e);
-    }
   }
 
   async addTask(text, categoryId) {
