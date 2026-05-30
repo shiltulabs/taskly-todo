@@ -1,6 +1,5 @@
 /**
  * Taskly - Premium To-Do & Task Management with Firebase Sync
- * Completely optimized to prevent infinite loading loops and speed up page load.
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -102,8 +101,13 @@ class TaskStore {
         });
       }
 
-      // Safe Fail-Safe check: If database has no categories or blocks read/write, load locally instantly
-      if (cats.length === 0) {
+      // Memory key to track if we already seeded the defaults
+      const seedKey = `taskly_seeded_${userId}`;
+
+      // Safe Fail-Safe check: If database has no categories, create them ONLY if not seeded before
+      if (cats.length === 0 && !localStorage.getItem(seedKey)) {
+        localStorage.setItem(seedKey, 'true'); // Remember we seeded them
+
         const defaults = {
           work: { name: 'Work', color: '#3B82F6', createdAt: Date.now() },
           personal: { name: 'Personal', color: '#8B5CF6', createdAt: Date.now() + 1 },
@@ -123,6 +127,11 @@ class TaskStore {
         return; 
       }
 
+      // If they deleted categories intentionally, mark as seeded to prevent loops
+      if (cats.length === 0) {
+         localStorage.setItem(seedKey, 'true');
+      }
+
       cats.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
       this.categories = cats;
       
@@ -140,7 +149,6 @@ class TaskStore {
       }
     }, (error) => {
       console.error("Database categories sync error:", error);
-      // Force loading window completion even if permission rules break
       if (callbacks && callbacks.onCategoriesSynced) callbacks.onCategoriesSynced();
     });
 
@@ -666,8 +674,16 @@ class AppController {
   }
 
   handleDeleteCategory(catId) {
-    const defaultCatId = this.store.categories.length > 0 ? this.store.categories[0].id : 'work';
-    if (confirm(`Are you sure you want to delete this category? Any tasks inside will be moved to the default category.`)) {
+    // FIX: Prevents deleting the last remaining category!
+    if (this.store.categories.length <= 1) {
+      alert("You must keep at least one category to hold your tasks!");
+      return;
+    }
+
+    const activeCategories = this.store.categories.filter(c => c.id !== catId);
+    const defaultCatId = activeCategories.length > 0 ? activeCategories[0].id : null;
+
+    if (confirm(`Are you sure you want to delete this category? Any tasks inside will be moved to your default category.`)) {
       if (this.store.selectedCategoryId === catId) {
         this.store.selectedCategoryId = 'all';
         this.store.save(this.store.STORAGE_KEYS.SELECTED_CAT, 'all');
