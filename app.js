@@ -1,6 +1,6 @@
 /**
  * Taskly - Premium To-Do & Task Management with Firebase Sync
- * Refactored for instant loading, automatic signup routing, and robust Google Auth setup.
+ * Completely optimized to prevent infinite loading loops and speed up page load.
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -41,7 +41,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// Configure Google Provider Globally
 const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('profile');
 googleProvider.addScope('email');
@@ -93,7 +92,8 @@ class TaskStore {
     const categoriesRef = ref(db, `users/${userId}/categories`);
     const tasksRef = ref(db, `users/${userId}/tasks`);
 
-    this.unsubscribeCategories = onValue(categoriesRef, (snapshot) => {
+    // Listen to Categories
+    this.unsubscribeCategories = onValue(categoriesRef, async (snapshot) => {
       const data = snapshot.val();
       let cats = [];
       if (data) {
@@ -102,13 +102,10 @@ class TaskStore {
         });
       }
 
-      // FIX: Tell the UI controller that synchronization completed even when configuring a new user layout
+      // Safe Check: If database has no categories, initialize them cleanly first
       if (cats.length === 0) {
-        this.initializeDefaultCategories();
-        if (callbacks && callbacks.onCategoriesSynced) {
-          callbacks.onCategoriesSynced();
-        }
-        return; 
+        await this.initializeDefaultCategories();
+        return; // Exits, letting the database write settle. The listener will instantly refire.
       }
 
       cats.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -130,6 +127,7 @@ class TaskStore {
       console.error("Database categories sync error:", error);
     });
 
+    // Listen to Tasks
     this.unsubscribeTasks = onValue(tasksRef, (snapshot) => {
       const data = snapshot.val();
       let tks = [];
@@ -161,16 +159,18 @@ class TaskStore {
     this.categories = [];
   }
 
-  initializeDefaultCategories() {
+  async initializeDefaultCategories() {
     if (!this.userId) return;
     const defaults = {
       work: { name: 'Work', color: '#3B82F6', createdAt: Date.now() },
       personal: { name: 'Personal', color: '#8B5CF6', createdAt: Date.now() + 1 },
       shopping: { name: 'Shopping', color: '#EC4899', createdAt: Date.now() + 2 }
     };
-    set(ref(db, `users/${this.userId}/categories`), defaults).catch(e => {
+    try {
+      await set(ref(db, `users/${this.userId}/categories`), defaults);
+    } catch (e) {
       console.error("Error creating default categories:", e);
-    });
+    }
   }
 
   async addTask(text, categoryId) {
@@ -371,7 +371,7 @@ class AppController {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     
     const today = new Date();
-    this.elements.currentDate.textContent = `${days[today.getDay()]}, ${months[today.getMonth()]} ${today.getDate()}`;
+    this.elements.currentDate.textContent = `${days[today.getDay()]} , ${months[today.getMonth()]} ${today.getDate()}`;
     this.elements.mobileDate.textContent = `${months[today.getMonth()]} ${today.getDate()}`;
   }
 
