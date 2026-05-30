@@ -5,23 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Taskly - Modern Task Management & To-Do List</title>
   <meta name="description" content="Organize your day, track progress, and manage tasks seamlessly with Taskly - a premium, intuitive, and beautiful to-do application.">
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Stylesheets -->
   <link rel="stylesheet" href="styles.css">
-  <!-- Scripts -->
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <div class="app-container">
-    <!-- Sidebar / List Navigation -->
     <aside class="app-sidebar" id="sidebar">
-      <div class="sidebar-header">
+      <div class="sidebar-header" style="margin-bottom: 1.5rem;">
         <div class="logo-container">
           <div class="app-logo">
-            <!-- Sparkles SVG icon -->
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spark-icon">
               <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707-.707M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" />
             </svg>
@@ -30,13 +25,19 @@
         </div>
       </div>
 
+      <div class="sidebar-top-controls" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border);">
+        <p class="sidebar-date" id="current-date" style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--color-text-main);">Wednesday, May 27</p>
+        <button id="theme-toggle-desktop" class="theme-toggle-btn" aria-label="Toggle dark/light theme" title="Toggle Theme">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        </button>
+      </div>
+
       <div class="sidebar-section">
         <div class="sidebar-section-title">
           <span>Views</span>
         </div>
         <ul class="views-list" id="views-list">
-          <!-- Dynamically populated global views (All Tasks) -->
-        </ul>
+          </ul>
       </div>
 
       <div class="sidebar-section">
@@ -47,12 +48,11 @@
           </button>
         </div>
         <ul class="category-list" id="category-list">
-          <!-- Dynamically populated categories -->
-        </ul>
+          </ul>
       </div>
 
-      <div class="sidebar-footer">
-        <div class="user-profile-section" id="user-profile-section" style="display: none;">
+      <div class="sidebar-footer" style="border-top: none; padding-top: 0;">
+        <div class="user-profile-section" id="user-profile-section" style="display: none; margin-bottom: 0;">
           <div class="user-avatar-container">
             <img src="" alt="Avatar" class="user-avatar" id="user-avatar" style="display: none;">
             <div class="user-avatar-placeholder" id="user-avatar-placeholder">U</div>
@@ -65,18 +65,10 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
           </button>
         </div>
-        <div class="footer-bottom">
-          <p class="sidebar-date" id="current-date">Wednesday, May 27</p>
-          <button id="theme-toggle-desktop" class="theme-toggle-btn" aria-label="Toggle dark/light theme" title="Toggle Theme">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-          </button>
-        </div>
       </div>
     </aside>
 
-    <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Top Mobile Navigation Header -->
       <header class="mobile-header">
         <button id="mobile-menu-toggle" class="icon-btn" aria-label="Toggle Navigation Menu">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -97,7 +89,6 @@
         </div>
       </header>
 
-      <!-- Dashboard Progress Section -->
       <section class="dashboard-section">
         <div class="dashboard-card" id="dashboard-progress-card">
           <div class="dashboard-card-header">
@@ -114,9 +105,7 @@
         </div>
       </section>
 
-      <!-- Task Creator & Filters Section -->
       <section class="task-management">
-        <!-- New Task Form -->
         <form id="task-form" class="task-form" autocomplete="off">
           <div class="input-container">
             <input type="text" id="task-input" placeholder="What needs to be done?" required aria-label="New Task Input">
@@ -127,8 +116,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </button>
               <ul id="task-category-dropdown" class="category-dropdown" role="listbox">
-                <!-- Dynamically populated options -->
-              </ul>
+                </ul>
             </div>
           </div>
           <button type="submit" class="submit-task-btn" aria-label="Add Task">
@@ -136,7 +124,6 @@
           </button>
         </form>
 
-        <!-- Status Filter Tabs -->
         <div class="filter-tabs-container">
           <div class="filter-tabs" role="tablist">
             <button id="filter-all" class="filter-tab active" role="tab" aria-selected="true">All</button>
@@ -145,11 +132,9 @@
           </div>
         </div>
 
-        <!-- Task List Container -->
         <div class="tasks-container">
           <ul class="tasks-list" id="tasks-list" aria-live="polite">
-            <!-- Dynamically populated task items -->
-          </ul>
+            </ul>
           <div class="empty-state" id="empty-state">
             <div class="empty-state-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
@@ -162,7 +147,6 @@
     </main>
   </div>
 
-  <!-- Modal for Creating New Category -->
   <div class="modal-overlay" id="category-modal" aria-hidden="true">
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
@@ -179,7 +163,6 @@
         <div class="form-group">
           <label>Theme Color</label>
           <div class="color-palette" id="category-color-palette">
-            <!-- Dynamically populated colors or hardcoded options -->
             <button type="button" class="color-swatch active" data-color="#F0521D" style="background-color: #F0521D;"></button>
             <button type="button" class="color-swatch" data-color="#3B82F6" style="background-color: #3B82F6;"></button>
             <button type="button" class="color-swatch" data-color="#10B981" style="background-color: #10B981;"></button>
@@ -195,7 +178,6 @@
     </div>
   </div>
 
-  <!-- Loading Overlay -->
   <div class="loading-overlay" id="loading-overlay">
     <div class="loading-spinner-container">
       <div class="loading-spinner"></div>
@@ -203,7 +185,6 @@
     </div>
   </div>
 
-  <!-- Authentication Overlay -->
   <div class="auth-overlay" id="auth-overlay" style="display: none;">
     <div class="auth-card">
       <div class="auth-header">
